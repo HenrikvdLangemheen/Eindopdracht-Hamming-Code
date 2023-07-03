@@ -1,0 +1,248 @@
+import random
+"""Opmerking: Omdat we enkel met enen en nullen willen werken, wordt in de Matrixklasse de modulo 2 operatie gebruikt."""
+
+class Vector:
+    """Klasse 'Vector' initialiseren met een lijst van elementen:"""
+    def __init__(self, elementen):
+        self.elementen = elementen
+        
+    """Optellen definiëren:"""
+    def __add__(self, andere):
+        if len(self.elementen) != len(andere.elementen):
+            raise ValueError("Vectoren moeten gelijke lengten hebben")
+
+        nieuwe_elementen = [x + y for x, y in zip(self.elementen, andere.elementen)]
+        return Vector(nieuwe_elementen)
+    
+    """Multiplicatie definiëren:"""
+    def __mul__(self, andere):
+        if isinstance(andere, Vector):
+            if len(self.elementen) != len(andere.elementen):
+                raise ValueError("Vectoren moeten gelijke lengten hebben")
+
+            nieuwe_elementen = [x * y for x, y in zip(self.elementen, andere.elementen)]
+            return Vector(nieuwe_elementen)
+        elif isinstance(andere, Matrix):
+            if len(self.elementen) != len(andere.rijen[0]):
+                raise ValueError("Vectorlengte moet gelijk zijn aan het aantal kolommen in de matrix")
+                
+            nieuwe_elementen = [sum(x * y for x, y in zip(self.elementen, kolom)) for kolom in andere.kolommen()]
+            return Vector(nieuwe_elementen)
+        else:
+            raise TypeError("Ongeldige objecten om operaties mee uit te voeren: '{}'".format(type(andere).__name__))
+    """Stringrepresentatie genereren:"""
+    def __repr__(self):
+        return str(self.elementen)
+    """Itereerbaar maken (zorgen dat je door verschillende elementen van de klasse kunt itereren):"""
+    def __iter__(self):
+        return iter(self.elementen)
+
+
+
+
+class Matrix:
+    """Klasse 'Matrix' initialiseren met een lijst van rijen:"""
+    def __init__(self, rijen):
+        self.rijen = rijen
+        """kolommen genereren:"""
+    def kolommen(self):
+        return zip(*self.rijen)
+    """Optellen definiëren:"""
+    def __add__(self, andere):
+        if len(self.rijen) != len(andere.rijen) or len(self.rijen[0]) != len(andere.rijen[0]):
+            raise ValueError("Matrices moeten gelijke dimensies hebben")
+        
+        nieuwe_rijen = [[x + y for x, y in zip(rij1, rij2)] for rij1, rij2 in zip(self.rijen, andere.rijen)]
+        return Matrix(nieuwe_rijen)
+    """Multiplicatie definiëren:"""
+    def __mul__(self, andere):
+        if isinstance(andere, Vector):
+            if len(andere.elementen) != len(self.rijen[0]):
+                raise ValueError("Vectorlengte moet gelijk zijn aan het aantal kolommen in de matrix")
+
+            nieuwe_elementen = [sum(x * y for x, y in zip(rij, andere.elementen)) % 2 for rij in self.rijen]
+            return Vector(nieuwe_elementen)
+        elif isinstance(andere, Matrix):
+            if len(self.rijen[0]) != len(andere.rijen):
+                raise ValueError("Matrixdimensies zijn niet geschikt voor vermenigvuldiging")
+
+            nieuwe_rijen = [[sum(x * y for x, y in zip(rij1, kolom)) % 2 for kolom in andere.kolommen()] for rij1 in self.rijen]
+            return Matrix(nieuwe_rijen)
+        else:
+            raise TypeError("Ongeldige objecten om operaties mee uit te voeren: '{}'".format(type(andere).__name__))
+    """Stringrepresentatie genereren:"""
+    def __repr__(self):
+        return '\n'.join(' '.join(str(x) for x in rij) for rij in self.rijen)
+    
+    
+    
+"""Deze functie codeert een bericht met vier of zeven bits naar een bericht van 7 of 11 bits 
+respectievelijk door middel van matrixvermenigvuldiging met G."""
+def codeer_bericht(data):
+    G = Matrix([])
+    
+    if len(data.elementen) == 4:
+  
+        G = Matrix([[1, 1, 0, 1],
+                    [1, 0, 1, 1],
+                    [1, 0, 0, 0],
+                    [0, 1, 1, 1],
+                    [0, 1, 0, 0],
+                    [0, 0, 1, 0],
+                    [0, 0, 0, 1]])
+    
+    
+    if len(data.elementen) == 11:
+        
+        G= Matrix( [[1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1],
+                    [1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1],
+                    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
+                    [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+                    [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]] )
+        
+        
+    gecodeerd_bericht = G * data
+
+    return Vector(gecodeerd_bericht.elementen)
+
+"""Deze functie haalt de error uit het ontvangen bericht door middel van matrixvermenigvuldiging met H."""
+def verbeter_fout(ontvangen_bericht):
+    H= Matrix([])
+    
+    if len(ontvangen_bericht.elementen) == 7:
+    
+        H = Matrix([[1, 0, 1, 0, 1, 0, 1],
+                    [0, 1, 1, 0, 0, 1, 1],
+                    [0, 0, 0, 1, 1, 1, 1]])
+    
+    if len(ontvangen_bericht.elementen) == 15:
+    
+        H = Matrix([[1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+                    [0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1],
+                    [0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1],
+                    [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1]])
+
+    pariteitscheck = H * ontvangen_bericht
+    
+    binaire = ''.join(str(x) for x in pariteitscheck)[::-1]                                                      #De vector omzetten naar binaire door spiegelen
+    berekende_error_positie = int(binaire, 2) - 1                                                                #De binaire omzetten naar een kloppende errorpositie
+    ontvangen_bericht_list = list(ontvangen_bericht.elementen)                                                   #Omzetten naar een list om de iteratie uit te kunnen voeren
+    ontvangen_bericht_list[berekende_error_positie] = 1 - ontvangen_bericht_list[berekende_error_positie]        #correctie van de bit
+    if binaire == '000' or binaire == '0000':                                                                    #Hier checken we of er überhaupt een fout in zit
+        return ontvangen_bericht                                                                                 #Geen fout gevonden? Terugsturen maar. 
+    else:
+        return Vector(ontvangen_bericht_list)
+
+"""Deze functie codeert een bericht met zeven of vijftien bits tot een bericht
+ met vier of 11 bits respectievelijk door middel van matrixvermenigvuldiging met R."""
+def decodeer_bericht(ontvangen_bericht):
+    R = Matrix([])
+    
+    if len(ontvangen_bericht.elementen) == 7:
+        
+        R = Matrix([[0, 0, 1, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 1, 0, 0],
+                    [0, 0, 0, 0, 0, 1, 0],
+                    [0, 0, 0, 0, 0, 0, 1]])
+        
+    if len(ontvangen_bericht.elementen) == 15:
+        
+        R = Matrix([[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]])
+
+    oorspronkelijk_bericht = R * ontvangen_bericht
+
+    return Vector(oorspronkelijk_bericht.elementen)
+
+
+
+""" Funcite voor invoer van de gebruiker definiëren:"""
+def invoer_gebruiker():
+    global invoer_aantal_bits
+    global invoer_bits
+    invoer_aantal_bits = input("Wilt u vier of elf bits coderen? ")
+    if int(invoer_aantal_bits) == 4:
+        invoer_bits = input("Wat zijn de vier bits die u wilt coderen? ")
+    elif int(invoer_aantal_bits) == 11:
+        invoer_bits = input("Wat zijn de elf bits die u wilt coderen? ")
+    else:
+        print("Het aantal bits dat u wilt coderen moet 4 of elf zijn.")
+    return invoer_bits
+    return invoer_aantal_bits
+
+"""Het aanroepen van de funcite 'invoer_gebruiker' """
+invoer_van_gebruiker = invoer_gebruiker()
+    
+""" Hier voegen we de elementen uit 'invoer_bits' toe aan een lijst"""
+lijst_van_invoer_int = []
+for i in range(0,len(invoer_bits)):
+    lijst_van_invoer_int.append(int(invoer_bits[i]))
+    
+bericht = Vector(lijst_van_invoer_int)
+
+""" Hier roepen we de functie aan die het te verzenden bericht codeert met extra bits"""              
+gecodeerd_bericht = codeer_bericht(bericht)
+print("Gecodeerd bericht:         ", gecodeerd_bericht)
+
+
+"""Een enkelvoudige fout simuleren door een willekeurige bit om te draaien:"""
+corrupte = Vector(gecodeerd_bericht.elementen)
+generated_error_position = random.randint(0, len(corrupte.elementen) - 1)
+corrupte.elementen[generated_error_position] ^= 1
+print("Ontvangen bericht met fout:", corrupte)
+
+"""Het oproepen van de functie die de error detecteert en eruit haalt:"""
+gecorrigeerd = verbeter_fout(corrupte)
+print("Gecorrigeerd bericht:      ", gecorrigeerd)
+
+"""Het gecorrigeerde bericht genereren door de decodeerfunctie op te roepen:"""
+gedecodeerd = decodeer_bericht(gecorrigeerd)
+print("Gedecodeerd bericht:       ", gedecodeerd)
+
+"""Hieronder voeren we hetzelfde uit als van regel 193 - 219, maar nu door de gebruiker in te vullen zeven of vijftien bits , die al dan niet een fout bevatten."""
+if int(invoer_aantal_bits) == 4:
+    invoer2 = input("Wat zijn de zeven bits van de vector (met fout) die u wilt decoderen? ")
+    if len(str(invoer2)) != 7: 
+        raise ValueError("Het aantal bits moet zeven zijn")
+elif int(invoer_aantal_bits) == 11:
+    invoer2 = input("Wat zijn de vijftien bits van de vector (met fout) die u wilt decoderen? ")    
+    if len(str(invoer2)) != 15:
+        raise ValueError("Het aantal bits moet vijftien zijn")
+        
+        
+lijst_van_invoer2 = list(invoer2)
+lijst_van_invoer2_int = [int(x) for x in lijst_van_invoer2]
+
+
+    
+    
+bericht2 = Vector(lijst_van_invoer2_int)
+print("Ontvangen bericht:   ", bericht2) 
+gecorrigeerd2 = verbeter_fout(bericht2)
+if bericht2 != gecorrigeerd2:
+    print("Fout getecteerd!")
+    print("Gecorrigeerd bericht:", gecorrigeerd2)
+else:
+    print("Geen fout gedetecteerd. :)")
+    None
+gedecodeerd2 = decodeer_bericht(gecorrigeerd2)
+print("Gedecodeerd bericht: ", gedecodeerd2)
